@@ -25,7 +25,6 @@ class _HomeScreenState extends State<HomeScreen> {
   ];
   double _budgetLimit = 20000;
 
-  // ==== агрегаты ====
   double get _spent =>
       _gifts.where((g) => g.isPurchased).fold(0.0, (sum, g) => sum + (g.plannedPrice ?? 0));
   double get _planned =>
@@ -33,7 +32,6 @@ class _HomeScreenState extends State<HomeScreen> {
   int get _purchasedCount => _gifts.where((g) => g.isPurchased).length;
   int get _plannedCount => _gifts.where((g) => !g.isPurchased).length;
 
-  // ==== CRUD ====
   void _addGift(Gift g) {
     setState(() => _gifts.insert(0, g));
     _showSnack('Добавлено: ${g.title}');
