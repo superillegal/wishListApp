@@ -39,7 +39,6 @@ class GiftDetailScreen extends StatelessWidget {
               );
               if (updated != null) {
                 onUpdate(updated);
-                // ignore: use_build_context_synchronously
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Сохранено')),
                 );
@@ -71,7 +70,6 @@ class GiftDetailScreen extends StatelessWidget {
               );
               if (ok == true) {
                 onDelete(gift.id);
-                // ignore: use_build_context_synchronously
                 Navigator.pop(context);
               }
             },
