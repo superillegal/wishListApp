@@ -84,7 +84,7 @@ class GiftTile extends StatelessWidget {
 }
 
 class _PriorityDots extends StatelessWidget {
-  final int value; // 1..5
+  final int value;
   final ValueChanged<int> onChanged;
   const _PriorityDots({required this.value, required this.onChanged});
 
