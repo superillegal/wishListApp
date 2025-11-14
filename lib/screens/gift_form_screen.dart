@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../models/gift.dart';
+import '../services/image_service.dart';
 
 class GiftFormScreen extends StatefulWidget {
   final Gift? initial;
@@ -15,6 +17,7 @@ class _GiftFormScreenState extends State<GiftFormScreen> {
   late final TextEditingController _title;
   late final TextEditingController _recipient;
   late final TextEditingController _price;
+  late final TextEditingController _image;
   String? _category;
   late int _priority;
   late final TextEditingController _note;
@@ -39,6 +42,7 @@ class _GiftFormScreenState extends State<GiftFormScreen> {
     _recipient = TextEditingController(text: g?.recipient ?? '');
     _price = TextEditingController(
         text: g?.plannedPrice == null ? '' : g!.plannedPrice!.toString());
+    _image = TextEditingController(text: g?.imageUrl ?? '');
     _category = g?.category ?? 'Без категории';
     _priority = g?.priority ?? 3;
     _note = TextEditingController(text: g?.note ?? '');
@@ -49,11 +53,12 @@ class _GiftFormScreenState extends State<GiftFormScreen> {
     _title.dispose();
     _recipient.dispose();
     _price.dispose();
+    _image.dispose();
     _note.dispose();
     super.dispose();
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
     final price = _price.text.trim().isEmpty
@@ -67,6 +72,18 @@ class _GiftFormScreenState extends State<GiftFormScreen> {
     }
 
     if (widget.initial == null) {
+      final manualImage = _image.text.trim();
+      String? resolvedImage;
+      if (manualImage.isEmpty) {
+        try {
+          resolvedImage = await ImageService.instance.generateImageUrl();
+        } catch (e) {
+          resolvedImage = null;
+          debugPrint('Не удалось получить изображение из пула: $e');
+        }
+      } else {
+        resolvedImage = manualImage;
+      }
       final created = Gift.newDraft(
         title: _title.text.trim(),
         recipient: _recipient.text.trim(),
@@ -74,6 +91,7 @@ class _GiftFormScreenState extends State<GiftFormScreen> {
         priority: _priority,
         category: (_category == 'Без категории') ? null : _category,
         note: _note.text.trim().isEmpty ? null : _note.text.trim(),
+        imageUrl: resolvedImage,
       );
       Navigator.pop(context, created);
     } else {
@@ -84,6 +102,7 @@ class _GiftFormScreenState extends State<GiftFormScreen> {
         priority: _priority,
         category: (_category == 'Без категории') ? null : _category,
         note: _note.text.trim().isEmpty ? null : _note.text.trim(),
+        imageUrl: _image.text.trim().isEmpty ? null : _image.text.trim(),
       );
       Navigator.pop(context, updated);
     }
@@ -136,6 +155,14 @@ class _GiftFormScreenState extends State<GiftFormScreen> {
               decoration: const InputDecoration(
                 labelText: 'Цена / бюджет (₽)',
                 hintText: 'например 2500',
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _image,
+              decoration: const InputDecoration(
+                labelText: 'Изображение (URL)',
+                hintText: 'https://example.com/present.jpg',
               ),
             ),
             const SizedBox(height: 12),

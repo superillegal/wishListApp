@@ -12,6 +12,7 @@ class Gift {
   final DateTime? datePurchased;
   final String? category;      // опц.
   final String? note;          // опц.
+  final String? imageUrl;      // опц. ссылка на изображение
 
   const Gift({
     required this.id,
@@ -24,6 +25,7 @@ class Gift {
     required this.datePurchased,
     required this.category,
     required this.note,
+    required this.imageUrl,
   });
 
   Gift copyWith({
@@ -37,6 +39,7 @@ class Gift {
     DateTime? datePurchased,
     String? category,
     String? note,
+    String? imageUrl,
   }) {
     return Gift(
       id: id ?? this.id,
@@ -49,6 +52,7 @@ class Gift {
       datePurchased: datePurchased ?? this.datePurchased,
       category: category ?? this.category,
       note: note ?? this.note,
+      imageUrl: imageUrl ?? this.imageUrl,
     );
   }
 
@@ -59,6 +63,7 @@ class Gift {
     int priority = 3,
     String? category,
     String? note,
+    String? imageUrl,
   }) {
     final now = DateTime.now();
     return Gift(
@@ -72,6 +77,7 @@ class Gift {
       datePurchased: null,
       category: category,
       note: note,
+      imageUrl: imageUrl,
     );
   }
 }

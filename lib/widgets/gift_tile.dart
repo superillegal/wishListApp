@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/gift.dart';
 import '../utils/format.dart';
+import 'gift_image.dart';
 
 class GiftTile extends StatelessWidget {
   final Gift gift;
@@ -33,9 +34,25 @@ class GiftTile extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       child: ListTile(
         onTap: onTap,
-        leading: Icon(
-          gift.isPurchased ? Icons.check_circle : Icons.pending_outlined,
-          color: gift.isPurchased ? Colors.green : theme.colorScheme.primary,
+        leading: Stack(
+          alignment: Alignment.bottomRight,
+          children: [
+            GiftThumbnail(imageUrl: gift.imageUrl),
+            Positioned(
+              right: 2,
+              bottom: 2,
+              child: CircleAvatar(
+                radius: 10,
+                backgroundColor:
+                    gift.isPurchased ? Colors.green : theme.colorScheme.primary,
+                child: Icon(
+                  gift.isPurchased ? Icons.check : Icons.pending,
+                  size: 12,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
         ),
         title: Text(gift.title,
             maxLines: 1, overflow: TextOverflow.ellipsis,

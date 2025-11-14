@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../models/gift.dart';
 import '../utils/format.dart';
+import '../services/image_service.dart';
 import '../widgets/budget_bar.dart';
+import '../widgets/gift_image.dart';
 import '../widgets/statistics_card.dart';
 import 'all_gifts_screen.dart';
 import 'purchased_gifts_screen.dart';
@@ -18,12 +20,15 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _tab = 0;
-  final List<Gift> _gifts = [
-    Gift.newDraft(title: 'Наушники', recipient: 'Аня', plannedPrice: 4500, priority: 4, category: 'Электроника'),
-    Gift.newDraft(title: 'Термокружка', recipient: 'Дима', plannedPrice: 1200, priority: 3, category: 'Дом'),
-    Gift.newDraft(title: 'Книга по Flutter', recipient: 'Саша', plannedPrice: 2200, priority: 5, category: 'Книги'),
-  ];
+  final List<Gift> _gifts = [];
+  bool _isGeneratingInitial = false;
   double _budgetLimit = 20000;
+
+  @override
+  void initState() {
+    super.initState();
+    _generateInitialGifts();
+  }
 
   double get _spent =>
       _gifts.where((g) => g.isPurchased).fold(0.0, (sum, g) => sum + (g.plannedPrice ?? 0));
@@ -71,6 +76,69 @@ class _HomeScreenState extends State<HomeScreen> {
     if (i != -1) {
       setState(() => _gifts[i] = _gifts[i].copyWith(priority: priority));
     }
+  }
+
+  Future<void> _generateInitialGifts() async {
+    setState(() => _isGeneratingInitial = true);
+    final templates = [
+      (
+        title: 'Новый смартфон',
+        recipient: 'Аня',
+        plannedPrice: 7500.0,
+        priority: 5,
+        category: 'Электроника'
+      ),
+      (
+        title: 'Набор для творчества',
+        recipient: 'Маша',
+        plannedPrice: 4200.0,
+        priority: 4,
+        category: 'Для дома'
+      ),
+      (
+        title: 'Книга по Flutter',
+        recipient: 'Игорь',
+        plannedPrice: 2200.0,
+        priority: 5,
+        category: 'Книги'
+      ),
+      (
+        title: 'Парфюмерный набор',
+        recipient: 'Юля',
+        plannedPrice: 3100.0,
+        priority: 3,
+        category: 'Аксессуары'
+      ),
+      (
+        title: 'Игровая консоль',
+        recipient: 'Вова',
+        plannedPrice: 5600.0,
+        priority: 4,
+        category: 'Электроника'
+      ),
+    ];
+
+    final generated = <Gift>[];
+    for (final t in templates) {
+      final imageUrl = await ImageService.instance.generateImageUrl();
+      generated.add(
+        Gift.newDraft(
+          title: t.title,
+          recipient: t.recipient,
+          plannedPrice: t.plannedPrice,
+          priority: t.priority,
+          category: t.category,
+          imageUrl: imageUrl,
+        ),
+      );
+    }
+    if (!mounted) return;
+    setState(() {
+      _gifts
+        ..clear()
+        ..addAll(generated);
+      _isGeneratingInitial = false;
+    });
   }
 
   void _openAddForm() async {
@@ -138,6 +206,10 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     ];
 
+    final body = (_isGeneratingInitial && _gifts.isEmpty)
+        ? const Center(child: CircularProgressIndicator())
+        : pages[_tab];
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Wishlist подарков'),
@@ -175,7 +247,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: pages[_tab],
+      body: body,
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tab,
         onDestinationSelected: (i) => setState(() => _tab = i),
@@ -284,6 +356,7 @@ class _HomeTab extends StatelessWidget {
         const SizedBox(height: 8),
         ...recent.map((g) => ListTile(
               onTap: () => onOpenDetails(g),
+              leading: GiftThumbnail(imageUrl: g.imageUrl, size: 52),
               title: Text(g.title, maxLines: 1, overflow: TextOverflow.ellipsis),
               subtitle: Text('${g.recipient} • ${g.category ?? 'Без категории'}'),
               trailing: Text(formatMoney(g.plannedPrice)),
@@ -302,3 +375,4 @@ class _HomeTab extends StatelessWidget {
 class _DetailResult {
   const _DetailResult();
 }
+
