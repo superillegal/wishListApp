@@ -15,14 +15,18 @@ class GiftThumbnail extends StatelessWidget {
       color: Theme.of(context).colorScheme.primary,
     );
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(size * 0.2),
-      child: Container(
-        width: size,
-        height: size,
-        color: Colors.grey.shade200,
-        alignment: Alignment.center,
-        child: _buildImage(placeholderIcon),
+    return SizedBox(
+      width: size,
+      child: AspectRatio(
+        aspectRatio: 2 / 3,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(size * 0.2),
+          child: Container(
+            color: Colors.grey.shade200,
+            alignment: Alignment.center,
+            child: _buildImage(placeholderIcon),
+          ),
+        ),
       ),
     );
   }

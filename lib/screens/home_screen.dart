@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../models/gift.dart';
 import '../utils/format.dart';
@@ -37,8 +38,17 @@ class _HomeScreenState extends State<HomeScreen> {
   int get _purchasedCount => _gifts.where((g) => g.isPurchased).length;
   int get _plannedCount => _gifts.where((g) => !g.isPurchased).length;
 
-  void _addGift(Gift g) {
-    setState(() => _gifts.insert(0, g));
+  Future<void> _addGift(Gift g) async {
+    String? imageUrl = g.imageUrl;
+    if (imageUrl == null || imageUrl.trim().isEmpty) {
+      try {
+        imageUrl = await ImageService.instance.nextImageUrl();
+      } catch (e) {
+        debugPrint('Не удалось получить изображение из пула: $e');
+      }
+    }
+    final withImage = (imageUrl == null) ? g : g.copyWith(imageUrl: imageUrl);
+    setState(() => _gifts.insert(0, withImage));
     _showSnack('Добавлено: ${g.title}');
   }
 
@@ -120,7 +130,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final generated = <Gift>[];
     for (final t in templates) {
-      final imageUrl = await ImageService.instance.generateImageUrl();
+      final imageUrl = await ImageService.instance.nextImageUrl();
       generated.add(
         Gift.newDraft(
           title: t.title,
@@ -145,7 +155,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final created = await Navigator.of(context).push<Gift>(
       MaterialPageRoute(builder: (_) => const GiftFormScreen()),
     );
-    if (created != null) _addGift(created);
+    if (created != null) await _addGift(created);
   }
 
   void _openDetails(Gift g) async {

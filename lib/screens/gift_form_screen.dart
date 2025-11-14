@@ -1,7 +1,5 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../models/gift.dart';
-import '../services/image_service.dart';
 
 class GiftFormScreen extends StatefulWidget {
   final Gift? initial;
@@ -58,7 +56,7 @@ class _GiftFormScreenState extends State<GiftFormScreen> {
     super.dispose();
   }
 
-  Future<void> _submit() async {
+  void _submit() {
     if (!_formKey.currentState!.validate()) return;
 
     final price = _price.text.trim().isEmpty
@@ -72,18 +70,6 @@ class _GiftFormScreenState extends State<GiftFormScreen> {
     }
 
     if (widget.initial == null) {
-      final manualImage = _image.text.trim();
-      String? resolvedImage;
-      if (manualImage.isEmpty) {
-        try {
-          resolvedImage = await ImageService.instance.generateImageUrl();
-        } catch (e) {
-          resolvedImage = null;
-          debugPrint('Не удалось получить изображение из пула: $e');
-        }
-      } else {
-        resolvedImage = manualImage;
-      }
       final created = Gift.newDraft(
         title: _title.text.trim(),
         recipient: _recipient.text.trim(),
@@ -91,7 +77,7 @@ class _GiftFormScreenState extends State<GiftFormScreen> {
         priority: _priority,
         category: (_category == 'Без категории') ? null : _category,
         note: _note.text.trim().isEmpty ? null : _note.text.trim(),
-        imageUrl: resolvedImage,
+        imageUrl: _image.text.trim().isEmpty ? null : _image.text.trim(),
       );
       Navigator.pop(context, created);
     } else {

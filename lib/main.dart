@@ -1,7 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'screens/home_screen.dart';
+import 'services/image_service.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final imageService = ImageService.instance;
+  await imageService.initialize();
+  imageService.preloadImagePool().catchError((e) {
+    debugPrint('Предзагрузка обложек не удалась: $e');
+  });
   runApp(const WishlistApp());
 }
 
