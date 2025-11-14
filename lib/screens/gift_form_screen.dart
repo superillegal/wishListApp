@@ -15,6 +15,7 @@ class _GiftFormScreenState extends State<GiftFormScreen> {
   late final TextEditingController _title;
   late final TextEditingController _recipient;
   late final TextEditingController _price;
+  late final TextEditingController _image;
   String? _category;
   late int _priority;
   late final TextEditingController _note;
@@ -39,6 +40,7 @@ class _GiftFormScreenState extends State<GiftFormScreen> {
     _recipient = TextEditingController(text: g?.recipient ?? '');
     _price = TextEditingController(
         text: g?.plannedPrice == null ? '' : g!.plannedPrice!.toString());
+    _image = TextEditingController(text: g?.imageUrl ?? '');
     _category = g?.category ?? 'Без категории';
     _priority = g?.priority ?? 3;
     _note = TextEditingController(text: g?.note ?? '');
@@ -49,6 +51,7 @@ class _GiftFormScreenState extends State<GiftFormScreen> {
     _title.dispose();
     _recipient.dispose();
     _price.dispose();
+    _image.dispose();
     _note.dispose();
     super.dispose();
   }
@@ -74,6 +77,7 @@ class _GiftFormScreenState extends State<GiftFormScreen> {
         priority: _priority,
         category: (_category == 'Без категории') ? null : _category,
         note: _note.text.trim().isEmpty ? null : _note.text.trim(),
+        imageUrl: _image.text.trim().isEmpty ? null : _image.text.trim(),
       );
       Navigator.pop(context, created);
     } else {
@@ -84,6 +88,7 @@ class _GiftFormScreenState extends State<GiftFormScreen> {
         priority: _priority,
         category: (_category == 'Без категории') ? null : _category,
         note: _note.text.trim().isEmpty ? null : _note.text.trim(),
+        imageUrl: _image.text.trim().isEmpty ? null : _image.text.trim(),
       );
       Navigator.pop(context, updated);
     }
@@ -136,6 +141,14 @@ class _GiftFormScreenState extends State<GiftFormScreen> {
               decoration: const InputDecoration(
                 labelText: 'Цена / бюджет (₽)',
                 hintText: 'например 2500',
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _image,
+              decoration: const InputDecoration(
+                labelText: 'Изображение (URL)',
+                hintText: 'https://example.com/present.jpg',
               ),
             ),
             const SizedBox(height: 12),

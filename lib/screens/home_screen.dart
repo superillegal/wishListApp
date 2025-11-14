@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/gift.dart';
 import '../utils/format.dart';
 import '../widgets/budget_bar.dart';
+import '../widgets/gift_image.dart';
 import '../widgets/statistics_card.dart';
 import 'all_gifts_screen.dart';
 import 'purchased_gifts_screen.dart';
@@ -19,9 +20,46 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _tab = 0;
   final List<Gift> _gifts = [
-    Gift.newDraft(title: 'Наушники', recipient: 'Аня', plannedPrice: 4500, priority: 4, category: 'Электроника'),
-    Gift.newDraft(title: 'Термокружка', recipient: 'Дима', plannedPrice: 1200, priority: 3, category: 'Дом'),
-    Gift.newDraft(title: 'Книга по Flutter', recipient: 'Саша', plannedPrice: 2200, priority: 5, category: 'Книги'),
+    Gift.newDraft(
+      title: 'Умная колонка',
+      recipient: 'Аня',
+      plannedPrice: 7500,
+      priority: 5,
+      category: 'Электроника',
+      imageUrl: 'https://images.unsplash.com/photo-1585386959984-a4155228ef44?w=800',
+    ),
+    Gift.newDraft(
+      title: 'Плед с подогревом',
+      recipient: 'Дима',
+      plannedPrice: 4200,
+      priority: 4,
+      category: 'Для дома',
+      imageUrl: 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=800',
+    ),
+    Gift.newDraft(
+      title: 'Книга по Flutter',
+      recipient: 'Саша',
+      plannedPrice: 2200,
+      priority: 5,
+      category: 'Книги',
+      imageUrl: 'https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=800',
+    ),
+    Gift.newDraft(
+      title: 'Настольная лампа',
+      recipient: 'Маша',
+      plannedPrice: 3100,
+      priority: 3,
+      category: 'Интерьер',
+      imageUrl: 'https://images.unsplash.com/photo-1505691723518-36a5ac3be353?w=800',
+    ),
+    Gift.newDraft(
+      title: 'Набор для путешествий',
+      recipient: 'Игорь',
+      plannedPrice: 5600,
+      priority: 4,
+      category: 'Аксессуары',
+      imageUrl: 'https://images.unsplash.com/photo-1518544889280-44e5c152ba8d?w=800',
+    ),
   ];
   double _budgetLimit = 20000;
 
@@ -284,6 +322,7 @@ class _HomeTab extends StatelessWidget {
         const SizedBox(height: 8),
         ...recent.map((g) => ListTile(
               onTap: () => onOpenDetails(g),
+              leading: GiftThumbnail(imageUrl: g.imageUrl, size: 52),
               title: Text(g.title, maxLines: 1, overflow: TextOverflow.ellipsis),
               subtitle: Text('${g.recipient} • ${g.category ?? 'Без категории'}'),
               trailing: Text(formatMoney(g.plannedPrice)),

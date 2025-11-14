@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/gift.dart';
 import '../utils/format.dart';
+import '../widgets/gift_image.dart';
 import 'gift_form_screen.dart';
 
 class GiftDetailScreen extends StatelessWidget {
@@ -78,6 +79,7 @@ class GiftDetailScreen extends StatelessWidget {
       ),
       body: ListView(
         children: [
+          GiftHeaderImage(imageUrl: gift.imageUrl, title: gift.title),
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
@@ -120,6 +122,8 @@ class GiftDetailScreen extends StatelessWidget {
               value: gift.datePurchased == null ? '—' : formatDate(gift.datePurchased!)),
           if (gift.note != null && gift.note!.trim().isNotEmpty)
             _InfoTile(label: 'Заметка', value: gift.note!),
+          if (gift.imageUrl != null && gift.imageUrl!.trim().isNotEmpty)
+            _InfoTile(label: 'Ссылка на изображение', value: gift.imageUrl!),
           const SizedBox(height: 12),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
