@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import '../models/gift.dart';
-import '../navigation/app_routes.dart';
-import '../navigation/route_args.dart';
-import '../utils/format.dart';
 import '../services/image_service.dart';
+import '../utils/format.dart';
 import '../widgets/budget_bar.dart';
 import '../widgets/gift_image.dart';
 import '../widgets/statistics_card.dart';
+import 'all_gifts_screen.dart';
+import 'gift_detail_screen.dart';
+import 'gift_form_screen.dart';
+import 'planned_gifts_screen.dart';
+import 'profile_screen.dart';
+import 'purchased_gifts_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -85,44 +88,83 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _openAllScreen() {
-    context.push(
-      AppRoutePaths.allGifts,
-      extra: GiftListRouteArgs(
-        title: 'Все подарки',
-        gifts: _gifts,
-        onOpen: _openDetails,
-        onDelete: _deleteGift,
-        onTogglePurchased: _togglePurchased,
-        onSetPriority: _setPriority,
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (ctx) => Scaffold(
+          appBar: AppBar(
+            title: const Text('Все подарки'),
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () => Navigator.of(ctx).pop(),
+            ),
+          ),
+          body: _buildAllGiftsScreen(),
+        ),
       ),
     );
   }
 
   void _openPurchasedScreen() {
-    context.push(
-      AppRoutePaths.purchasedGifts,
-      extra: GiftListRouteArgs(
-        title: 'Купленные подарки',
-        gifts: _gifts.where((g) => g.isPurchased).toList(),
-        onOpen: _openDetails,
-        onDelete: _deleteGift,
-        onTogglePurchased: _togglePurchased,
-        onSetPriority: _setPriority,
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (ctx) => Scaffold(
+          appBar: AppBar(
+            title: const Text('Купленные подарки'),
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () => Navigator.of(ctx).pop(),
+            ),
+          ),
+          body: _buildPurchasedScreen(),
+        ),
       ),
     );
   }
 
   void _openPlannedScreen() {
-    context.push(
-      AppRoutePaths.plannedGifts,
-      extra: GiftListRouteArgs(
-        title: 'Подарки в ожидании',
-        gifts: _gifts.where((g) => !g.isPurchased).toList(),
-        onOpen: _openDetails,
-        onDelete: _deleteGift,
-        onTogglePurchased: _togglePurchased,
-        onSetPriority: _setPriority,
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (ctx) => Scaffold(
+          appBar: AppBar(
+            title: const Text('Подарки в ожидании'),
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () => Navigator.of(ctx).pop(),
+            ),
+          ),
+          body: _buildPlannedScreen(),
+        ),
       ),
+    );
+  }
+
+  AllGiftsScreen _buildAllGiftsScreen() {
+    return AllGiftsScreen(
+      gifts: _gifts,
+      onOpen: _openDetails,
+      onDelete: _deleteGift,
+      onTogglePurchased: _togglePurchased,
+      onSetPriority: _setPriority,
+    );
+  }
+
+  PurchasedGiftsScreen _buildPurchasedScreen() {
+    return PurchasedGiftsScreen(
+      gifts: _gifts.where((g) => g.isPurchased).toList(),
+      onOpen: _openDetails,
+      onDelete: _deleteGift,
+      onTogglePurchased: _togglePurchased,
+      onSetPriority: _setPriority,
+    );
+  }
+
+  PlannedGiftsScreen _buildPlannedScreen() {
+    return PlannedGiftsScreen(
+      gifts: _gifts.where((g) => !g.isPurchased).toList(),
+      onOpen: _openDetails,
+      onDelete: _deleteGift,
+      onTogglePurchased: _togglePurchased,
+      onSetPriority: _setPriority,
     );
   }
 
@@ -140,11 +182,11 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => ctx.pop(), child: const Text('Отмена')),
+          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Отмена')),
           FilledButton(
             onPressed: () {
               final v = double.tryParse(ctrl.text.replaceAll(',', '.'));
-              ctx.pop(v);
+              Navigator.of(ctx).pop(v);
             },
             child: const Text('Сохранить'),
           ),
@@ -218,25 +260,30 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _openAddForm() async {
-    final created = await context.push<Gift>(AppRoutePaths.giftForm);
+    final created = await Navigator.of(context).push<Gift>(
+      MaterialPageRoute(builder: (_) => const GiftFormScreen()),
+    );
     if (created != null) await _addGift(created);
   }
 
   Future<void> _openDetails(Gift g) async {
-    await context.push(
-      AppRoutePaths.giftDetails(g.id),
-      extra: GiftDetailRouteArgs(
-        gift: g,
-        onUpdate: _updateGift,
-        onDelete: _deleteGift,
-        onTogglePurchased: _togglePurchased,
-        onSetPriority: _setPriority,
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => GiftDetailScreen(
+          gift: g,
+          onUpdate: _updateGift,
+          onDelete: _deleteGift,
+          onTogglePurchased: _togglePurchased,
+          onSetPriority: _setPriority,
+        ),
       ),
     );
   }
 
   void _openProfile() {
-    context.push(AppRoutePaths.profile);
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const ProfileScreen()),
+    );
   }
 
   void _showSnack(String msg) {

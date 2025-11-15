@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import '../models/gift.dart';
 
 class GiftFormScreen extends StatefulWidget {
@@ -80,7 +79,7 @@ class _GiftFormScreenState extends State<GiftFormScreen> {
         note: _note.text.trim().isEmpty ? null : _note.text.trim(),
         imageUrl: _image.text.trim().isEmpty ? null : _image.text.trim(),
       );
-      context.pop(created);
+      Navigator.of(context).pop(created);
     } else {
       final updated = widget.initial!.copyWith(
         title: _title.text.trim(),
@@ -91,7 +90,7 @@ class _GiftFormScreenState extends State<GiftFormScreen> {
         note: _note.text.trim().isEmpty ? null : _note.text.trim(),
         imageUrl: _image.text.trim().isEmpty ? null : _image.text.trim(),
       );
-      context.pop(updated);
+      Navigator.of(context).pop(updated);
     }
   }
 
@@ -102,7 +101,7 @@ class _GiftFormScreenState extends State<GiftFormScreen> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
+          onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(isEdit ? 'Редактировать идею' : 'Новая идея'),
       ),

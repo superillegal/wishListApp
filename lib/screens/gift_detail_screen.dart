@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import '../models/gift.dart';
-import '../navigation/app_routes.dart';
 import '../utils/format.dart';
 import '../widgets/gift_image.dart';
+import 'gift_form_screen.dart';
 
 class GiftDetailScreen extends StatelessWidget {
   final Gift gift;
@@ -33,16 +32,15 @@ class GiftDetailScreen extends StatelessWidget {
         title: const Text('Детали идеи'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
+          onPressed: () => Navigator.of(context).pop(),
         ),
         actions: [
           IconButton(
             tooltip: 'Редактировать',
             icon: const Icon(Icons.edit_outlined),
             onPressed: () async {
-              final updated = await context.push<Gift>(
-                AppRoutePaths.giftEdit(gift.id),
-                extra: gift,
+              final updated = await Navigator.of(context).push<Gift>(
+                MaterialPageRoute(builder: (_) => GiftFormScreen(initial: gift)),
               );
               if (!context.mounted) return;
               if (updated != null) {
@@ -68,9 +66,9 @@ class GiftDetailScreen extends StatelessWidget {
                   title: const Text('Удалить идею?'),
                   content: Text('«${gift.title}» будет удалена.'),
                   actions: [
-                    TextButton(onPressed: () => ctx.pop(false), child: const Text('Отмена')),
+                    TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Отмена')),
                     FilledButton(
-                      onPressed: () => ctx.pop(true),
+                      onPressed: () => Navigator.of(ctx).pop(true),
                       child: const Text('Удалить'),
                     ),
                   ],
@@ -79,7 +77,7 @@ class GiftDetailScreen extends StatelessWidget {
               if (!context.mounted) return;
               if (ok == true) {
                 onDelete(gift.id);
-                context.pop();
+                Navigator.of(context).pop();
               }
             },
           ),
