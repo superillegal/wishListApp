@@ -8,9 +8,6 @@ import '../services/image_service.dart';
 import '../widgets/budget_bar.dart';
 import '../widgets/gift_image.dart';
 import '../widgets/statistics_card.dart';
-import 'all_gifts_screen.dart';
-import 'purchased_gifts_screen.dart';
-import 'planned_gifts_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -20,7 +17,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int _tab = 0;
   final List<Gift> _gifts = [];
   bool _isGeneratingInitial = false;
   double _budgetLimit = 20000;
@@ -249,46 +245,21 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final pages = [
-      _HomeTab(
-        gifts: _gifts,
-        purchasedCount: _purchasedCount,
-        plannedCount: _plannedCount,
-        spent: _spent,
-        planned: _planned,
-        budgetLimit: _budgetLimit,
-        onOpenAll: _openAllScreen,
-        onOpenPurchased: _openPurchasedScreen,
-        onOpenPlanned: _openPlannedScreen,
-        onOpenProfile: _openProfile,
-        onOpenDetails: _openDetails,
-      ),
-      AllGiftsScreen(
-        gifts: _gifts,
-        onOpen: _openDetails,
-        onDelete: _deleteGift,
-        onTogglePurchased: _togglePurchased,
-        onSetPriority: _setPriority,
-      ),
-      PurchasedGiftsScreen(
-        gifts: _gifts.where((g) => g.isPurchased).toList(),
-        onOpen: _openDetails,
-        onDelete: _deleteGift,
-        onTogglePurchased: _togglePurchased,
-        onSetPriority: _setPriority,
-      ),
-      PlannedGiftsScreen(
-        gifts: _gifts.where((g) => !g.isPurchased).toList(),
-        onOpen: _openDetails,
-        onDelete: _deleteGift,
-        onTogglePurchased: _togglePurchased,
-        onSetPriority: _setPriority,
-      ),
-    ];
-
     final body = (_isGeneratingInitial && _gifts.isEmpty)
         ? const Center(child: CircularProgressIndicator())
-        : pages[_tab];
+        : _HomeTab(
+            gifts: _gifts,
+            purchasedCount: _purchasedCount,
+            plannedCount: _plannedCount,
+            spent: _spent,
+            planned: _planned,
+            budgetLimit: _budgetLimit,
+            onOpenAll: _openAllScreen,
+            onOpenPurchased: _openPurchasedScreen,
+            onOpenPlanned: _openPlannedScreen,
+            onOpenProfile: _openProfile,
+            onOpenDetails: _openDetails,
+          );
 
     return Scaffold(
       appBar: AppBar(
@@ -322,26 +293,11 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       body: body,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _tab,
-        onDestinationSelected: (i) => setState(() => _tab = i),
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Главная'),
-          NavigationDestination(icon: Icon(Icons.list_alt), label: 'Все идеи'),
-          NavigationDestination(icon: Icon(Icons.check_circle_outlined), label: 'Куплено'),
-          NavigationDestination(icon: Icon(Icons.pending_actions), label: 'В планах'),
-        ],
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _openAddForm,
+        icon: const Icon(Icons.add),
+        label: const Text('Добавить'),
       ),
-      floatingActionButton: _tab == 0
-          ? FloatingActionButton.extended(
-              onPressed: _openAddForm,
-              icon: const Icon(Icons.add),
-              label: const Text('Добавить'),
-            )
-          : FloatingActionButton(
-              onPressed: _openAddForm,
-              child: const Icon(Icons.add),
-            ),
     );
   }
 }
