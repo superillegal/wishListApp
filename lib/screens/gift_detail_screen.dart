@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../models/gift.dart';
+import '../navigation/app_routes.dart';
 import '../utils/format.dart';
 import '../widgets/gift_image.dart';
-import 'gift_form_screen.dart';
 
 class GiftDetailScreen extends StatelessWidget {
   final Gift gift;
@@ -30,14 +31,20 @@ class GiftDetailScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Детали идеи'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.pop(),
+        ),
         actions: [
           IconButton(
             tooltip: 'Редактировать',
             icon: const Icon(Icons.edit_outlined),
             onPressed: () async {
-              final updated = await Navigator.of(context).push<Gift>(
-                MaterialPageRoute(builder: (_) => GiftFormScreen(initial: gift)),
+              final updated = await context.push<Gift>(
+                AppRoutePaths.giftEdit(gift.id),
+                extra: gift,
               );
+              if (!context.mounted) return;
               if (updated != null) {
                 onUpdate(updated);
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -61,17 +68,18 @@ class GiftDetailScreen extends StatelessWidget {
                   title: const Text('Удалить идею?'),
                   content: Text('«${gift.title}» будет удалена.'),
                   actions: [
-                    TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Отмена')),
+                    TextButton(onPressed: () => ctx.pop(false), child: const Text('Отмена')),
                     FilledButton(
-                      onPressed: () => Navigator.pop(ctx, true),
+                      onPressed: () => ctx.pop(true),
                       child: const Text('Удалить'),
                     ),
                   ],
                 ),
               );
+              if (!context.mounted) return;
               if (ok == true) {
                 onDelete(gift.id);
-                Navigator.pop(context);
+                context.pop();
               }
             },
           ),
@@ -85,8 +93,8 @@ class GiftDetailScreen extends StatelessWidget {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  statusColor.withOpacity(0.15),
-                  statusColor.withOpacity(0.05),
+                  statusColor.withValues(alpha: 0.15),
+                  statusColor.withValues(alpha: 0.05),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,

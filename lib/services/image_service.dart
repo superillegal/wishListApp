@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -99,9 +100,9 @@ class ImageService {
     for (final url in urls) {
       try {
         await _cacheManager.downloadFile(url);
-        print('Прездагружено изображение подарка $url');
+        debugPrint('Предзагружено изображение подарка $url');
       } catch (e) {
-        print('Ошибка предзагрузки $url: $e');
+        debugPrint('Ошибка предзагрузки $url: $e');
       }
     }
   }

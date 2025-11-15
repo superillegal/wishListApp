@@ -1,6 +1,8 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../models/gift.dart';
+import '../navigation/app_routes.dart';
+import '../navigation/route_args.dart';
 import '../utils/format.dart';
 import '../services/image_service.dart';
 import '../widgets/budget_bar.dart';
@@ -9,8 +11,6 @@ import '../widgets/statistics_card.dart';
 import 'all_gifts_screen.dart';
 import 'purchased_gifts_screen.dart';
 import 'planned_gifts_screen.dart';
-import 'gift_form_screen.dart';
-import 'gift_detail_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -88,6 +88,76 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  void _openAllScreen() {
+    context.push(
+      AppRoutePaths.allGifts,
+      extra: GiftListRouteArgs(
+        title: 'Все подарки',
+        gifts: _gifts,
+        onOpen: _openDetails,
+        onDelete: _deleteGift,
+        onTogglePurchased: _togglePurchased,
+        onSetPriority: _setPriority,
+      ),
+    );
+  }
+
+  void _openPurchasedScreen() {
+    context.push(
+      AppRoutePaths.purchasedGifts,
+      extra: GiftListRouteArgs(
+        title: 'Купленные подарки',
+        gifts: _gifts.where((g) => g.isPurchased).toList(),
+        onOpen: _openDetails,
+        onDelete: _deleteGift,
+        onTogglePurchased: _togglePurchased,
+        onSetPriority: _setPriority,
+      ),
+    );
+  }
+
+  void _openPlannedScreen() {
+    context.push(
+      AppRoutePaths.plannedGifts,
+      extra: GiftListRouteArgs(
+        title: 'Подарки в ожидании',
+        gifts: _gifts.where((g) => !g.isPurchased).toList(),
+        onOpen: _openDetails,
+        onDelete: _deleteGift,
+        onTogglePurchased: _togglePurchased,
+        onSetPriority: _setPriority,
+      ),
+    );
+  }
+
+  Future<void> _changeBudgetLimit() async {
+    final ctrl = TextEditingController(text: _budgetLimit.toStringAsFixed(0));
+    final newLimit = await showDialog<double>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Лимит бюджета'),
+        content: TextField(
+          controller: ctrl,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(
+            labelText: 'Сумма в ₽',
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => ctx.pop(), child: const Text('Отмена')),
+          FilledButton(
+            onPressed: () {
+              final v = double.tryParse(ctrl.text.replaceAll(',', '.'));
+              ctx.pop(v);
+            },
+            child: const Text('Сохранить'),
+          ),
+        ],
+      ),
+    );
+    if (newLimit != null) setState(() => _budgetLimit = newLimit);
+  }
+
   Future<void> _generateInitialGifts() async {
     setState(() => _isGeneratingInitial = true);
     final templates = [
@@ -151,27 +221,26 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  void _openAddForm() async {
-    final created = await Navigator.of(context).push<Gift>(
-      MaterialPageRoute(builder: (_) => const GiftFormScreen()),
-    );
+  Future<void> _openAddForm() async {
+    final created = await context.push<Gift>(AppRoutePaths.giftForm);
     if (created != null) await _addGift(created);
   }
 
-  void _openDetails(Gift g) async {
-    final updatedOrDeleted = await Navigator.of(context).push<_DetailResult>(
-      MaterialPageRoute(
-        builder: (_) => GiftDetailScreen(
-          gift: g,
-          onUpdate: _updateGift,
-          onDelete: _deleteGift,
-          onTogglePurchased: _togglePurchased,
-          onSetPriority: _setPriority,
-        ),
+  Future<void> _openDetails(Gift g) async {
+    await context.push(
+      AppRoutePaths.giftDetails(g.id),
+      extra: GiftDetailRouteArgs(
+        gift: g,
+        onUpdate: _updateGift,
+        onDelete: _deleteGift,
+        onTogglePurchased: _togglePurchased,
+        onSetPriority: _setPriority,
       ),
     );
-    if (updatedOrDeleted == null) return;
+  }
 
+  void _openProfile() {
+    context.push(AppRoutePaths.profile);
   }
 
   void _showSnack(String msg) {
@@ -188,9 +257,10 @@ class _HomeScreenState extends State<HomeScreen> {
         spent: _spent,
         planned: _planned,
         budgetLimit: _budgetLimit,
-        onOpenAll: () => setState(() => _tab = 1),
-        onOpenPurchased: () => setState(() => _tab = 2),
-        onOpenPlanned: () => setState(() => _tab = 3),
+        onOpenAll: _openAllScreen,
+        onOpenPurchased: _openPurchasedScreen,
+        onOpenPlanned: _openPlannedScreen,
+        onOpenProfile: _openProfile,
         onOpenDetails: _openDetails,
       ),
       AllGiftsScreen(
@@ -222,38 +292,32 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Wishlist подарков'),
+        title: const Text('Wishlist Gifts'),
         actions: [
           IconButton(
-            tooltip: 'Изменить лимит бюджета',
+            tooltip: 'All gifts',
+            icon: const Icon(Icons.list_alt),
+            onPressed: _openAllScreen,
+          ),
+          IconButton(
+            tooltip: 'Purchased',
+            icon: const Icon(Icons.check_circle_outline),
+            onPressed: _openPurchasedScreen,
+          ),
+          IconButton(
+            tooltip: 'Planned',
+            icon: const Icon(Icons.pending_actions),
+            onPressed: _openPlannedScreen,
+          ),
+          IconButton(
+            tooltip: 'Profile',
+            icon: const Icon(Icons.person_outline),
+            onPressed: _openProfile,
+          ),
+          IconButton(
+            tooltip: 'Budget limit',
             icon: const Icon(Icons.account_balance_wallet_outlined),
-            onPressed: () async {
-              final ctrl = TextEditingController(text: _budgetLimit.toStringAsFixed(0));
-              final newLimit = await showDialog<double>(
-                context: context,
-                builder: (ctx) => AlertDialog(
-                  title: const Text('Лимит бюджета'),
-                  content: TextField(
-                    controller: ctrl,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Сумма в ₽',
-                    ),
-                  ),
-                  actions: [
-                    TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Отмена')),
-                    FilledButton(
-                      onPressed: () {
-                        final v = double.tryParse(ctrl.text.replaceAll(',', '.'));
-                        Navigator.pop(ctx, v);
-                      },
-                      child: const Text('Сохранить'),
-                    ),
-                  ],
-                ),
-              );
-              if (newLimit != null) setState(() => _budgetLimit = newLimit);
-            },
+            onPressed: _changeBudgetLimit,
           ),
         ],
       ),
@@ -293,6 +357,7 @@ class _HomeTab extends StatelessWidget {
   final VoidCallback onOpenAll;
   final VoidCallback onOpenPurchased;
   final VoidCallback onOpenPlanned;
+  final VoidCallback onOpenProfile;
   final void Function(Gift) onOpenDetails;
 
   const _HomeTab({
@@ -305,6 +370,7 @@ class _HomeTab extends StatelessWidget {
     required this.onOpenAll,
     required this.onOpenPurchased,
     required this.onOpenPlanned,
+    required this.onOpenProfile,
     required this.onOpenDetails,
   });
 
@@ -361,6 +427,13 @@ class _HomeTab extends StatelessWidget {
             ),
           ],
         ),
+        const SizedBox(height: 12),
+        _QuickNavRow(
+          onOpenAll: onOpenAll,
+          onOpenPurchased: onOpenPurchased,
+          onOpenPlanned: onOpenPlanned,
+          onOpenProfile: onOpenProfile,
+        ),
         const SizedBox(height: 16),
         Text('Недавно добавленные', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
@@ -381,8 +454,49 @@ class _HomeTab extends StatelessWidget {
   }
 }
 
+class _QuickNavRow extends StatelessWidget {
+  final VoidCallback onOpenAll;
+  final VoidCallback onOpenPurchased;
+  final VoidCallback onOpenPlanned;
+  final VoidCallback onOpenProfile;
 
-class _DetailResult {
-  const _DetailResult();
+  const _QuickNavRow({
+    required this.onOpenAll,
+    required this.onOpenPurchased,
+    required this.onOpenPlanned,
+    required this.onOpenProfile,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final items = [
+      _NavItem('all', Icons.list_alt, 'Все подарки', onOpenAll),
+      _NavItem('purchased', Icons.check_circle_outline, 'Куплено', onOpenPurchased),
+      _NavItem('planned', Icons.pending_actions, 'В ожидании', onOpenPlanned),
+      _NavItem('profile', Icons.person_outline, 'Профиль', onOpenProfile),
+    ];
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: items
+          .map(
+            (item) => IconButton(
+              tooltip: item.tooltip,
+              icon: Icon(item.icon),
+              onPressed: item.onTap,
+            ),
+          )
+          .toList(),
+    );
+  }
+}
+
+class _NavItem {
+  final String id;
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onTap;
+
+  const _NavItem(this.id, this.icon, this.tooltip, this.onTap);
 }
 

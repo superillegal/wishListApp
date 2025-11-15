@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../models/gift.dart';
 
 class GiftFormScreen extends StatefulWidget {
@@ -79,7 +80,7 @@ class _GiftFormScreenState extends State<GiftFormScreen> {
         note: _note.text.trim().isEmpty ? null : _note.text.trim(),
         imageUrl: _image.text.trim().isEmpty ? null : _image.text.trim(),
       );
-      Navigator.pop(context, created);
+      context.pop(created);
     } else {
       final updated = widget.initial!.copyWith(
         title: _title.text.trim(),
@@ -90,7 +91,7 @@ class _GiftFormScreenState extends State<GiftFormScreen> {
         note: _note.text.trim().isEmpty ? null : _note.text.trim(),
         imageUrl: _image.text.trim().isEmpty ? null : _image.text.trim(),
       );
-      Navigator.pop(context, updated);
+      context.pop(updated);
     }
   }
 
@@ -99,6 +100,10 @@ class _GiftFormScreenState extends State<GiftFormScreen> {
     final isEdit = widget.initial != null;
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.pop(),
+        ),
         title: Text(isEdit ? 'Редактировать идею' : 'Новая идея'),
       ),
       body: Form(
@@ -127,7 +132,7 @@ class _GiftFormScreenState extends State<GiftFormScreen> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
-              value: _category ?? 'Без категории',
+              initialValue: _category ?? 'Без категории',
               decoration: const InputDecoration(labelText: 'Категория'),
               items: _categories
                   .map((c) => DropdownMenuItem(value: c, child: Text(c)))
