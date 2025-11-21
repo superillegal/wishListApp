@@ -1,133 +1,53 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+
+import '../app_state.dart';
 import '../models/gift.dart';
 import '../navigation/app_routes.dart';
-import '../navigation/route_args.dart';
 import '../utils/format.dart';
-import '../services/image_service.dart';
 import '../widgets/budget_bar.dart';
 import '../widgets/gift_image.dart';
 import '../widgets/statistics_card.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
-  @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> {
-  final List<Gift> _gifts = [];
-  bool _isGeneratingInitial = false;
-  double _budgetLimit = 20000;
-
-  @override
-  void initState() {
-    super.initState();
-    _generateInitialGifts();
-  }
-
-  double get _spent =>
-      _gifts.where((g) => g.isPurchased).fold(0.0, (sum, g) => sum + (g.plannedPrice ?? 0));
-  double get _planned =>
-      _gifts.where((g) => !g.isPurchased).fold(0.0, (sum, g) => sum + (g.plannedPrice ?? 0));
-  int get _purchasedCount => _gifts.where((g) => g.isPurchased).length;
-  int get _plannedCount => _gifts.where((g) => !g.isPurchased).length;
-
-  Future<void> _addGift(Gift g) async {
-    String? imageUrl = g.imageUrl;
-    if (imageUrl == null || imageUrl.trim().isEmpty) {
-      try {
-        imageUrl = await ImageService.instance.nextImageUrl();
-      } catch (e) {
-        debugPrint('Не удалось получить изображение из пула: $e');
-      }
-    }
-    final withImage = (imageUrl == null) ? g : g.copyWith(imageUrl: imageUrl);
-    setState(() => _gifts.insert(0, withImage));
-    _showSnack('Добавлено: ${g.title}');
-  }
-
-  void _updateGift(Gift g) {
-    final i = _gifts.indexWhere((e) => e.id == g.id);
-    if (i != -1) {
-      setState(() => _gifts[i] = g);
-      _showSnack('Обновлено: ${g.title}');
+  Future<void> _openAddForm(BuildContext context) async {
+    final created = await context.push<Gift>(AppRoutePaths.giftForm);
+    if (!context.mounted) return;
+    final appState = AppStateInheritedWidget.read(context);
+    if (created != null && appState != null) {
+      await appState.onAddGift(created);
+      if (!context.mounted) return;
+      _showSnack(context, 'Добавлено: ${created.title}');
     }
   }
 
-  void _deleteGift(String id) {
-    final i = _gifts.indexWhere((e) => e.id == id);
-    if (i != -1) {
-      final removed = _gifts[i];
-      setState(() => _gifts.removeAt(i));
-      _showSnack('Удалено: ${removed.title}');
-    }
+  Future<void> _openDetails(BuildContext context, Gift gift) async {
+    await context.push(AppRoutePaths.giftDetails(gift.id));
   }
 
-  void _togglePurchased(String id) {
-    final i = _gifts.indexWhere((e) => e.id == id);
-    if (i != -1) {
-      final g = _gifts[i];
-      final toggled = g.copyWith(
-        isPurchased: !g.isPurchased,
-        datePurchased: (!g.isPurchased) ? DateTime.now() : null,
-      );
-      setState(() => _gifts[i] = toggled);
-    }
+  void _openAllScreen(BuildContext context) {
+    context.push(AppRoutePaths.allGifts);
   }
 
-  void _setPriority(String id, int priority) {
-    final i = _gifts.indexWhere((e) => e.id == id);
-    if (i != -1) {
-      setState(() => _gifts[i] = _gifts[i].copyWith(priority: priority));
-    }
+  void _openPurchasedScreen(BuildContext context) {
+    context.push(AppRoutePaths.purchasedGifts);
   }
 
-  void _openAllScreen() {
-    context.push(
-      AppRoutePaths.allGifts,
-      extra: GiftListRouteArgs(
-        title: 'Все подарки',
-        gifts: _gifts,
-        onOpen: _openDetails,
-        onDelete: _deleteGift,
-        onTogglePurchased: _togglePurchased,
-        onSetPriority: _setPriority,
-      ),
-    );
+  void _openPlannedScreen(BuildContext context) {
+    context.push(AppRoutePaths.plannedGifts);
   }
 
-  void _openPurchasedScreen() {
-    context.push(
-      AppRoutePaths.purchasedGifts,
-      extra: GiftListRouteArgs(
-        title: 'Купленные подарки',
-        gifts: _gifts.where((g) => g.isPurchased).toList(),
-        onOpen: _openDetails,
-        onDelete: _deleteGift,
-        onTogglePurchased: _togglePurchased,
-        onSetPriority: _setPriority,
-      ),
-    );
+  void _openProfile(BuildContext context) {
+    context.push(AppRoutePaths.profile);
   }
 
-  void _openPlannedScreen() {
-    context.push(
-      AppRoutePaths.plannedGifts,
-      extra: GiftListRouteArgs(
-        title: 'Подарки в ожидании',
-        gifts: _gifts.where((g) => !g.isPurchased).toList(),
-        onOpen: _openDetails,
-        onDelete: _deleteGift,
-        onTogglePurchased: _togglePurchased,
-        onSetPriority: _setPriority,
-      ),
-    );
-  }
-
-  Future<void> _changeBudgetLimit() async {
-    final ctrl = TextEditingController(text: _budgetLimit.toStringAsFixed(0));
+  Future<void> _changeBudgetLimit(
+    BuildContext context,
+    AppStateInheritedWidget appState,
+  ) async {
+    final ctrl = TextEditingController(text: appState.budgetLimit.toStringAsFixed(0));
     final newLimit = await showDialog<double>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -143,122 +63,45 @@ class _HomeScreenState extends State<HomeScreen> {
           TextButton(onPressed: () => ctx.pop(), child: const Text('Отмена')),
           FilledButton(
             onPressed: () {
-              final v = double.tryParse(ctrl.text.replaceAll(',', '.'));
-              ctx.pop(v);
+              final value = double.tryParse(ctrl.text.replaceAll(',', '.'));
+              ctx.pop(value);
             },
-            child: const Text('Сохранить'),
+            child: const Text('Обновить'),
           ),
         ],
       ),
     );
-    if (newLimit != null) setState(() => _budgetLimit = newLimit);
+    if (newLimit != null) appState.onChangeBudgetLimit(newLimit);
   }
 
-  Future<void> _generateInitialGifts() async {
-    setState(() => _isGeneratingInitial = true);
-    final templates = [
-      (
-        title: 'Новый смартфон',
-        recipient: 'Аня',
-        plannedPrice: 7500.0,
-        priority: 5,
-        category: 'Электроника'
-      ),
-      (
-        title: 'Набор для творчества',
-        recipient: 'Маша',
-        plannedPrice: 4200.0,
-        priority: 4,
-        category: 'Для дома'
-      ),
-      (
-        title: 'Книга по Flutter',
-        recipient: 'Игорь',
-        plannedPrice: 2200.0,
-        priority: 5,
-        category: 'Книги'
-      ),
-      (
-        title: 'Парфюмерный набор',
-        recipient: 'Юля',
-        plannedPrice: 3100.0,
-        priority: 3,
-        category: 'Аксессуары'
-      ),
-      (
-        title: 'Игровая консоль',
-        recipient: 'Вова',
-        plannedPrice: 5600.0,
-        priority: 4,
-        category: 'Электроника'
-      ),
-    ];
-
-    final generated = <Gift>[];
-    for (final t in templates) {
-      final imageUrl = await ImageService.instance.nextImageUrl();
-      generated.add(
-        Gift.newDraft(
-          title: t.title,
-          recipient: t.recipient,
-          plannedPrice: t.plannedPrice,
-          priority: t.priority,
-          category: t.category,
-          imageUrl: imageUrl,
-        ),
-      );
-    }
-    if (!mounted) return;
-    setState(() {
-      _gifts
-        ..clear()
-        ..addAll(generated);
-      _isGeneratingInitial = false;
-    });
-  }
-
-  Future<void> _openAddForm() async {
-    final created = await context.push<Gift>(AppRoutePaths.giftForm);
-    if (created != null) await _addGift(created);
-  }
-
-  Future<void> _openDetails(Gift g) async {
-    await context.push(
-      AppRoutePaths.giftDetails(g.id),
-      extra: GiftDetailRouteArgs(
-        gift: g,
-        onUpdate: _updateGift,
-        onDelete: _deleteGift,
-        onTogglePurchased: _togglePurchased,
-        onSetPriority: _setPriority,
-      ),
-    );
-  }
-
-  void _openProfile() {
-    context.push(AppRoutePaths.profile);
-  }
-
-  void _showSnack(String msg) {
+  void _showSnack(BuildContext context, String msg) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
   @override
   Widget build(BuildContext context) {
-    final body = (_isGeneratingInitial && _gifts.isEmpty)
+    final appState = AppStateInheritedWidget.of(context);
+
+    if (appState == null) {
+      return const Scaffold(
+        body: Center(child: Text('Ошибка: AppState не найден')),
+      );
+    }
+
+    final body = (appState.isGeneratingInitial && appState.gifts.isEmpty)
         ? const Center(child: CircularProgressIndicator())
         : _HomeTab(
-            gifts: _gifts,
-            purchasedCount: _purchasedCount,
-            plannedCount: _plannedCount,
-            spent: _spent,
-            planned: _planned,
-            budgetLimit: _budgetLimit,
-            onOpenAll: _openAllScreen,
-            onOpenPurchased: _openPurchasedScreen,
-            onOpenPlanned: _openPlannedScreen,
-            onOpenProfile: _openProfile,
-            onOpenDetails: _openDetails,
+            gifts: appState.gifts,
+            purchasedCount: appState.purchasedCount,
+            plannedCount: appState.plannedCount,
+            spent: appState.spent,
+            planned: appState.planned,
+            budgetLimit: appState.budgetLimit,
+            onOpenAll: () => _openAllScreen(context),
+            onOpenPurchased: () => _openPurchasedScreen(context),
+            onOpenPlanned: () => _openPlannedScreen(context),
+            onOpenProfile: () => _openProfile(context),
+            onOpenDetails: (g) => _openDetails(context, g),
           );
 
     return Scaffold(
@@ -268,40 +111,39 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             tooltip: 'All gifts',
             icon: const Icon(Icons.list_alt),
-            onPressed: _openAllScreen,
+            onPressed: () => _openAllScreen(context),
           ),
           IconButton(
             tooltip: 'Purchased',
             icon: const Icon(Icons.check_circle_outline),
-            onPressed: _openPurchasedScreen,
+            onPressed: () => _openPurchasedScreen(context),
           ),
           IconButton(
             tooltip: 'Planned',
             icon: const Icon(Icons.pending_actions),
-            onPressed: _openPlannedScreen,
+            onPressed: () => _openPlannedScreen(context),
           ),
           IconButton(
             tooltip: 'Profile',
             icon: const Icon(Icons.person_outline),
-            onPressed: _openProfile,
+            onPressed: () => _openProfile(context),
           ),
           IconButton(
             tooltip: 'Budget limit',
             icon: const Icon(Icons.account_balance_wallet_outlined),
-            onPressed: _changeBudgetLimit,
+            onPressed: () => _changeBudgetLimit(context, appState),
           ),
         ],
       ),
       body: body,
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _openAddForm,
+        onPressed: () => _openAddForm(context),
         icon: const Icon(Icons.add),
         label: const Text('Добавить'),
       ),
     );
   }
 }
-
 
 class _HomeTab extends StatelessWidget {
   final List<Gift> gifts;
@@ -403,7 +245,7 @@ class _HomeTab extends StatelessWidget {
         if (recent.isEmpty)
           const Padding(
             padding: EdgeInsets.only(top: 12),
-            child: Text('Пока нет элементов. Нажми «Добавить».'),
+            child: Text('Пока нет идей. Добавьте подарок.'),
           ),
       ],
     );
@@ -427,8 +269,8 @@ class _QuickNavRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final items = [
       _NavItem('all', Icons.list_alt, 'Все подарки', onOpenAll),
-      _NavItem('purchased', Icons.check_circle_outline, 'Куплено', onOpenPurchased),
-      _NavItem('planned', Icons.pending_actions, 'В ожидании', onOpenPlanned),
+      _NavItem('purchased', Icons.check_circle_outline, 'Купленные', onOpenPurchased),
+      _NavItem('planned', Icons.pending_actions, 'В планах', onOpenPlanned),
       _NavItem('profile', Icons.person_outline, 'Профиль', onOpenProfile),
     ];
 
@@ -455,4 +297,3 @@ class _NavItem {
 
   const _NavItem(this.id, this.icon, this.tooltip, this.onTap);
 }
-

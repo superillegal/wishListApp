@@ -1,27 +1,24 @@
 import 'package:flutter/material.dart';
-import '../models/gift.dart';
+import 'package:go_router/go_router.dart';
+
+import '../app_state.dart';
+import '../navigation/app_routes.dart';
 import '../widgets/gift_tile.dart';
 
 class PlannedGiftsScreen extends StatelessWidget {
-  final List<Gift> gifts;
-  final void Function(Gift gift) onOpen;
-  final void Function(String id) onDelete;
-  final void Function(String id) onTogglePurchased;
-  final void Function(String id, int priority) onSetPriority;
-
-  const PlannedGiftsScreen({
-    super.key,
-    required this.gifts,
-    required this.onOpen,
-    required this.onDelete,
-    required this.onTogglePurchased,
-    required this.onSetPriority,
-  });
+  const PlannedGiftsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final appState = AppStateInheritedWidget.of(context);
+    if (appState == null) {
+      return const Center(child: Text('AppState не найден'));
+    }
+
+    final gifts = appState.gifts.where((g) => !g.isPurchased).toList();
+
     if (gifts.isEmpty) {
-      return const Center(child: Text('Пока нет запланированных идей'));
+      return const Center(child: Text('Пока нет запланированных подарков'));
     }
     return ListView.builder(
       itemCount: gifts.length,
@@ -29,10 +26,10 @@ class PlannedGiftsScreen extends StatelessWidget {
         final g = gifts[i];
         return GiftTile(
           gift: g,
-          onTap: () => onOpen(g),
-          onDelete: () => onDelete(g.id),
-          onTogglePurchased: () => onTogglePurchased(g.id),
-          onSetPriority: (p) => onSetPriority(g.id, p),
+          onTap: () => ctx.push(AppRoutePaths.giftDetails(g.id)),
+          onDelete: () => appState.onDeleteGift(g.id),
+          onTogglePurchased: () => appState.onTogglePurchased(g.id),
+          onSetPriority: (p) => appState.onSetPriority(g.id, p),
         );
       },
     );

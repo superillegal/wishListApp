@@ -1,36 +1,39 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+
+import '../app_state.dart';
 import '../models/gift.dart';
 import '../navigation/app_routes.dart';
 import '../utils/format.dart';
 import '../widgets/gift_image.dart';
 
 class GiftDetailScreen extends StatelessWidget {
-  final Gift gift;
-  final void Function(Gift) onUpdate;
-  final void Function(String id) onDelete;
-  final void Function(String id) onTogglePurchased;
-  final void Function(String id, int priority) onSetPriority;
+  final String giftId;
 
-  const GiftDetailScreen({
-    super.key,
-    required this.gift,
-    required this.onUpdate,
-    required this.onDelete,
-    required this.onTogglePurchased,
-    required this.onSetPriority,
-  });
+  const GiftDetailScreen({super.key, required this.giftId});
 
   @override
   Widget build(BuildContext context) {
+    final appState = AppStateInheritedWidget.of(context);
+    if (appState == null) {
+      return const Scaffold(
+        body: Center(child: Text('AppState не найден')),
+      );
+    }
+
+    final gift = appState.findGift(giftId);
+    if (gift == null) {
+      return const Scaffold(
+        body: Center(child: Text('Подарок не найден')),
+      );
+    }
+
     final theme = Theme.of(context);
-    final statusColor = gift.isPurchased
-        ? Colors.green
-        : theme.colorScheme.primary;
+    final statusColor = gift.isPurchased ? Colors.green : theme.colorScheme.primary;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Детали идеи'),
+        title: const Text('Детали подарка'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.pop(),
@@ -42,11 +45,10 @@ class GiftDetailScreen extends StatelessWidget {
             onPressed: () async {
               final updated = await context.push<Gift>(
                 AppRoutePaths.giftEdit(gift.id),
-                extra: gift,
               );
               if (!context.mounted) return;
               if (updated != null) {
-                onUpdate(updated);
+                appState.onUpdateGift(updated);
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Сохранено')),
                 );
@@ -54,9 +56,9 @@ class GiftDetailScreen extends StatelessWidget {
             },
           ),
           IconButton(
-            tooltip: gift.isPurchased ? 'Вернуть в планы' : 'Отметить купленным',
+            tooltip: gift.isPurchased ? 'Вернуть в план' : 'Отметить купленным',
             icon: Icon(gift.isPurchased ? Icons.undo : Icons.check_circle_outline),
-            onPressed: () => onTogglePurchased(gift.id),
+            onPressed: () => appState.onTogglePurchased(gift.id),
           ),
           IconButton(
             tooltip: 'Удалить',
@@ -65,8 +67,8 @@ class GiftDetailScreen extends StatelessWidget {
               final ok = await showDialog<bool>(
                 context: context,
                 builder: (ctx) => AlertDialog(
-                  title: const Text('Удалить идею?'),
-                  content: Text('«${gift.title}» будет удалена.'),
+                  title: const Text('Удалить подарок'),
+                  content: Text('«${gift.title}» будет удален.'),
                   actions: [
                     TextButton(onPressed: () => ctx.pop(false), child: const Text('Отмена')),
                     FilledButton(
@@ -78,8 +80,8 @@ class GiftDetailScreen extends StatelessWidget {
               );
               if (!context.mounted) return;
               if (ok == true) {
-                onDelete(gift.id);
-                context.pop();
+                await appState.onDeleteGift(gift.id);
+                if (context.mounted) context.pop();
               }
             },
           ),
@@ -111,8 +113,7 @@ class GiftDetailScreen extends StatelessWidget {
                 Expanded(
                   child: Text(
                     gift.title,
-                    style: theme.textTheme.headlineSmall
-                        ?.copyWith(fontWeight: FontWeight.w700),
+                    style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
                   ),
                 ),
               ],
@@ -120,29 +121,30 @@ class GiftDetailScreen extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           _InfoTile(label: 'Получатель', value: gift.recipient),
-          _InfoTile(label: 'Категория', value: gift.category ?? '—'),
-          _InfoTile(label: 'Статус', value: gift.isPurchased ? 'Куплено' : 'В планах'),
+          _InfoTile(label: 'Категория', value: gift.category ?? '-'),
+          _InfoTile(label: 'Статус', value: gift.isPurchased ? 'Куплен' : 'В планах'),
           _InfoTile(label: 'Приоритет', value: '${gift.priority} / 5'),
-          _InfoTile(label: 'Бюджет/цена', value: formatMoney(gift.plannedPrice)),
+          _InfoTile(label: 'Бюджет', value: formatMoney(gift.plannedPrice)),
           _InfoTile(label: 'Добавлено', value: formatDate(gift.dateAdded)),
           _InfoTile(
-              label: 'Дата покупки',
-              value: gift.datePurchased == null ? '—' : formatDate(gift.datePurchased!)),
+            label: 'Дата покупки',
+            value: gift.datePurchased == null ? '-' : formatDate(gift.datePurchased!),
+          ),
           if (gift.note != null && gift.note!.trim().isNotEmpty)
             _InfoTile(label: 'Заметка', value: gift.note!),
           if (gift.imageUrl != null && gift.imageUrl!.trim().isNotEmpty)
-            _InfoTile(label: 'Ссылка на изображение', value: gift.imageUrl!),
+            _InfoTile(label: 'Ссылка на картинку', value: gift.imageUrl!),
           const SizedBox(height: 12),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: InputDecorator(
-              decoration: const InputDecoration(labelText: 'Изменить приоритет'),
+              decoration: const InputDecoration(labelText: 'Оценить важность'),
               child: Row(
                 children: List.generate(5, (i) {
                   final n = i + 1;
                   final filled = n <= gift.priority;
                   return IconButton(
-                    onPressed: () => onSetPriority(gift.id, n),
+                    onPressed: () => appState.onSetPriority(gift.id, n),
                     icon: Icon(filled ? Icons.star : Icons.star_border),
                     tooltip: '$n',
                   );

@@ -5,11 +5,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-
 class ImageService {
-  ImageService._();
-
-  static final ImageService instance = ImageService._();
+  ImageService();
 
   static const _keyAvailableImages = 'image_pool_available';
   static const _keyUsedImages = 'image_pool_used';
@@ -51,6 +48,14 @@ class ImageService {
     _usedImages.add(url);
     await _saveState();
     return url;
+  }
+
+  Future<void> releaseImage(String url) async {
+    _usedImages.remove(url);
+    if (!_availableImages.contains(url)) {
+      _availableImages.add(url);
+      await _saveState();
+    }
   }
 
   Future<void> _restoreState() async {

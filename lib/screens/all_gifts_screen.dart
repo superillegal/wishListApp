@@ -1,22 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
+import '../app_state.dart';
 import '../models/gift.dart';
+import '../navigation/app_routes.dart';
 import '../widgets/gift_tile.dart';
 
 class AllGiftsScreen extends StatefulWidget {
-  final List<Gift> gifts;
-  final void Function(Gift gift) onOpen;
-  final void Function(String id) onDelete;
-  final void Function(String id) onTogglePurchased;
-  final void Function(String id, int priority) onSetPriority;
-
-  const AllGiftsScreen({
-    super.key,
-    required this.gifts,
-    required this.onOpen,
-    required this.onDelete,
-    required this.onTogglePurchased,
-    required this.onSetPriority,
-  });
+  const AllGiftsScreen({super.key});
 
   @override
   State<AllGiftsScreen> createState() => _AllGiftsScreenState();
@@ -25,11 +16,16 @@ class AllGiftsScreen extends StatefulWidget {
 class _AllGiftsScreenState extends State<AllGiftsScreen> {
   String _query = '';
   String _statusFilter = 'all'; // all / purchased / planned
-  String _sort = 'date_desc';   // date_desc / price_asc / price_desc / prio_desc
+  String _sort = 'date_desc'; // date_desc / price_asc / price_desc / prio_desc
 
   @override
   Widget build(BuildContext context) {
-    List<Gift> list = widget.gifts.where((g) {
+    final appState = AppStateInheritedWidget.of(context);
+    if (appState == null) {
+      return const Center(child: Text('AppState не найден'));
+    }
+
+    List<Gift> list = appState.gifts.where((g) {
       final matchQuery = _query.trim().isEmpty ||
           g.title.toLowerCase().contains(_query.toLowerCase()) ||
           g.recipient.toLowerCase().contains(_query.toLowerCase());
@@ -71,12 +67,12 @@ class _AllGiftsScreenState extends State<AllGiftsScreen> {
               ),
               const SizedBox(width: 8),
               PopupMenuButton<String>(
-                tooltip: 'Фильтры',
+                tooltip: 'Фильтр',
                 icon: const Icon(Icons.filter_alt_outlined),
                 onSelected: (v) => setState(() => _statusFilter = v),
                 itemBuilder: (ctx) => const [
                   PopupMenuItem(value: 'all', child: Text('Все')),
-                  PopupMenuItem(value: 'purchased', child: Text('Куплено')),
+                  PopupMenuItem(value: 'purchased', child: Text('Купленные')),
                   PopupMenuItem(value: 'planned', child: Text('В планах')),
                 ],
               ),
@@ -98,17 +94,17 @@ class _AllGiftsScreenState extends State<AllGiftsScreen> {
         const SizedBox(height: 8),
         Expanded(
           child: list.isEmpty
-              ? const Center(child: Text('Ничего не найдено'))
+              ? const Center(child: Text('Подарков не найдено'))
               : ListView.builder(
                   itemCount: list.length,
                   itemBuilder: (ctx, i) {
                     final g = list[i];
                     return GiftTile(
                       gift: g,
-                      onTap: () => widget.onOpen(g),
-                      onDelete: () => widget.onDelete(g.id),
-                      onTogglePurchased: () => widget.onTogglePurchased(g.id),
-                      onSetPriority: (p) => widget.onSetPriority(g.id, p),
+                      onTap: () => ctx.push(AppRoutePaths.giftDetails(g.id)),
+                      onDelete: () => appState.onDeleteGift(g.id),
+                      onTogglePurchased: () => appState.onTogglePurchased(g.id),
+                      onSetPriority: (p) => appState.onSetPriority(g.id, p),
                     );
                   },
                 ),
