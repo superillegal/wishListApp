@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:wishlist/main.dart';
+import 'package:wishlist/app.dart';
 import 'package:wishlist/services/service_locator.dart';
 
 void main() {
