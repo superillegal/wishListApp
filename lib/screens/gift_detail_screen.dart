@@ -11,19 +11,76 @@ import '../utils/format.dart';
 import '../widgets/gift_image.dart';
 
 
-class GiftDetailScreen extends StatelessWidget {
+class GiftDetailScreen extends StatefulWidget {
   final String giftId;
 
   const GiftDetailScreen({super.key, required this.giftId});
 
-  Gift? _findGift(BuildContext context) {
+  @override
+  State<GiftDetailScreen> createState() => _GiftDetailScreenState();
+}
+
+class _GiftDetailScreenState extends State<GiftDetailScreen> {
+  Gift? _gift;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadGift();
+  }
+
+  void _loadGift() {
     final state = context.read<GiftsBloc>().state;
-    if (state is! GiftsLoaded) return null;
-    try {
-      return state.gifts.firstWhere((g) => g.id == giftId);
-    } catch (_) {
-      return null;
+    if (state is GiftsLoaded) {
+      for (final g in state.gifts) {
+        if (g.id == widget.giftId) {
+          _gift = g;
+          break;
+        }
+      }
     }
+  }
+
+  void _togglePurchased() {
+    if (_gift == null) return;
+    final nextValue = !_gift!.isPurchased;
+    context.read<GiftsBloc>().add(ToggleGiftPurchased(_gift!.id, nextValue));
+    setState(() {
+      _gift = _gift!.copyWith(
+        isPurchased: nextValue,
+        datePurchased: nextValue ? DateTime.now() : null,
+      );
+    });
+  }
+
+  Future<void> _openEdit() async {
+    if (_gift == null) return;
+    final updated = await context.push<Gift>(
+      AppRoutePaths.giftEdit(_gift!.id),
+    );
+    if (!mounted) return;
+    if (updated != null) {
+      context.read<GiftsBloc>().add(UpdateGift(updated));
+      setState(() => _gift = updated);
+    }
+  }
+
+  Future<void> _deleteGift() async {
+    if (_gift == null) return;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Удалить подарок'),
+        content: Text('“${_gift!.title}” будет удалён.'),
+        actions: [
+          TextButton(onPressed: () => ctx.pop(false), child: const Text('Отмена')),
+          FilledButton(onPressed: () => ctx.pop(true), child: const Text('Удалить')),
+        ],
+      ),
+    );
+    if (!mounted || ok != true) return;
+    context.read<GiftsBloc>().add(DeleteGift(_gift!.id));
+    context.pop();
   }
 
   @override
@@ -32,22 +89,21 @@ class GiftDetailScreen extends StatelessWidget {
 
     return BlocBuilder<GiftsBloc, GiftsState>(
       builder: (context, state) {
-        if (state is! GiftsLoaded) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        if (_gift == null && state is GiftsLoaded) {
+          _loadGift();
         }
 
-        final gift = _findGift(context);
-        if (gift == null) {
+        if (_gift == null) {
           return const Scaffold(
             body: Center(child: Text('Подарок не найден')),
           );
         }
 
-        final statusColor = gift.isPurchased ? Colors.green : theme.colorScheme.primary;
+        final statusColor = _gift!.isPurchased ? Colors.green : theme.colorScheme.primary;
 
         return Scaffold(
           appBar: AppBar(
-            title: Text(gift.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+            title: Text(_gift!.title, maxLines: 1, overflow: TextOverflow.ellipsis),
             leading: IconButton(
               icon: const Icon(Icons.arrow_back),
               onPressed: () => context.pop(),
@@ -56,50 +112,17 @@ class GiftDetailScreen extends StatelessWidget {
               IconButton(
                 tooltip: 'Редактировать',
                 icon: const Icon(Icons.edit_outlined),
-                onPressed: () async {
-                  final updated = await context.push<Gift>(
-                    AppRoutePaths.giftEdit(gift.id),
-                  );
-                  if (!context.mounted) return;
-                  if (updated != null) {
-                    context.read<GiftsBloc>().add(UpdateGift(updated));
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Сохранено')),
-                    );
-                  }
-                },
+                onPressed: _openEdit,
               ),
               IconButton(
-                tooltip: gift.isPurchased ? 'Вернуть в план' : 'Отметить купленным',
-                icon: Icon(gift.isPurchased ? Icons.undo : Icons.check_circle_outline),
-                onPressed: () => context
-                    .read<GiftsBloc>()
-                    .add(ToggleGiftPurchased(gift.id, !gift.isPurchased)),
+                tooltip: _gift!.isPurchased ? 'Вернуть в план' : 'Отметить купленным',
+                icon: Icon(_gift!.isPurchased ? Icons.undo : Icons.check_circle_outline),
+                onPressed: _togglePurchased,
               ),
               IconButton(
                 tooltip: 'Удалить',
                 icon: const Icon(Icons.delete_outline),
-                onPressed: () async {
-                  final ok = await showDialog<bool>(
-                    context: context,
-                    builder: (ctx) => AlertDialog(
-                      title: const Text('Удалить подарок'),
-                      content: Text('“${gift.title}” будет удалён.'),
-                      actions: [
-                        TextButton(onPressed: () => ctx.pop(false), child: const Text('Отмена')),
-                        FilledButton(
-                          onPressed: () => ctx.pop(true),
-                          child: const Text('Удалить'),
-                        ),
-                      ],
-                    ),
-                  );
-                  if (!context.mounted) return;
-                  if (ok == true) {
-                    context.read<GiftsBloc>().add(DeleteGift(gift.id));
-                    if (context.mounted) context.pop();
-                  }
-                },
+                onPressed: _deleteGift,
               ),
             ],
           ),
@@ -116,7 +139,7 @@ class GiftDetailScreen extends StatelessWidget {
                       child: SizedBox(
                         width: double.infinity,
                         height: imageHeight,
-                        child: GiftHeaderImage(imageUrl: gift.imageUrl, title: gift.title),
+                        child: GiftHeaderImage(imageUrl: _gift!.imageUrl, title: _gift!.title),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -130,70 +153,71 @@ class GiftDetailScreen extends StatelessWidget {
                             Row(
                               children: [
                                 Icon(
-                                  gift.isPurchased ? Icons.check_circle : Icons.pending_actions,
+                                  _gift!.isPurchased ? Icons.check_circle : Icons.pending_actions,
                                   color: statusColor,
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
-                                  gift.isPurchased ? 'Куплено' : 'В планах',
+                                  _gift!.isPurchased ? 'Куплено' : 'В планах',
                                   style: theme.textTheme.titleMedium,
                                 ),
                                 const Spacer(),
                                 _PriorityStars(
-                                  value: gift.priority,
+                                  value: _gift!.priority,
                                   onTap: (v) => context
                                       .read<GiftsBloc>()
-                                      .add(UpdateGiftPriority(gift.id, v)),
+                                      .add(UpdateGiftPriority(_gift!.id, v)),
                                 ),
                               ],
                             ),
                             const SizedBox(height: 12),
-                            _InfoRow(icon: Icons.person_outline, label: 'Получатель', value: gift.recipient),
+                            _InfoRow(
+                                icon: Icons.person_outline,
+                                label: 'Получатель',
+                                value: _gift!.recipient),
                             _InfoRow(
                               icon: Icons.category_outlined,
                               label: 'Категория',
-                              value: gift.category ?? 'Без категории',
+                              value: _gift!.category ?? 'Без категории',
                             ),
                             _InfoRow(
                               icon: Icons.attach_money,
                               label: 'Бюджет',
-                              value: formatMoney(gift.plannedPrice),
+                              value: formatMoney(_gift!.plannedPrice),
                             ),
                             _InfoRow(
                               icon: Icons.event_available,
                               label: 'Добавлено',
-                              value: formatDate(gift.dateAdded),
+                              value: formatDate(_gift!.dateAdded),
                             ),
                             _InfoRow(
                               icon: Icons.event,
                               label: 'Покупка',
-                              value: gift.datePurchased == null
+                              value: _gift!.datePurchased == null
                                   ? '-'
-                                  : formatDate(gift.datePurchased!),
+                                  : formatDate(_gift!.datePurchased!),
                             ),
-                            if (gift.note != null && gift.note!.trim().isNotEmpty) ...[
+                            if (_gift!.note != null && _gift!.note!.trim().isNotEmpty) ...[
                               const SizedBox(height: 8),
                               Text('Комментарий', style: theme.textTheme.labelLarge),
                               const SizedBox(height: 4),
-                              Text(gift.note!),
+                              Text(_gift!.note!),
                             ],
                           ],
                         ),
                       ),
                     ),
-                    if (gift.imageUrl != null && gift.imageUrl!.trim().isNotEmpty) ...[
+                    if (_gift!.imageUrl != null && _gift!.imageUrl!.trim().isNotEmpty) ...[
                       const SizedBox(height: 16),
                       Text('Ссылка на изображение', style: theme.textTheme.labelLarge),
                       const SizedBox(height: 4),
-                      Text(gift.imageUrl!, style: theme.textTheme.bodyMedium),
+                      Text(_gift!.imageUrl!, style: theme.textTheme.bodyMedium),
                     ],
                     const SizedBox(height: 16),
                     FilledButton.icon(
-                      onPressed: () => context
-                          .read<GiftsBloc>()
-                          .add(ToggleGiftPurchased(gift.id, !gift.isPurchased)),
-                      icon: Icon(gift.isPurchased ? Icons.undo : Icons.check),
-                      label: Text(gift.isPurchased ? 'Вернуть в план' : 'Отметить купленным'),
+                      onPressed: _togglePurchased,
+                      icon: Icon(_gift!.isPurchased ? Icons.undo : Icons.check),
+                      label: Text(_gift!.isPurchased ? 'Вернуть в план' : 'Отметить купленным'),
                     ),
                   ],
                 ),
