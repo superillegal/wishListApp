@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+
 import '../models/gift.dart';
+
 
 class GiftFormScreen extends StatefulWidget {
   final Gift? initial;
@@ -23,14 +25,14 @@ class _GiftFormScreenState extends State<GiftFormScreen> {
 
   final _categories = const [
     'Без категории',
-    'Электроника',
-    'Одежда',
-    'Аксессуары',
+    'Путешествия',
+    'Красота',
+    'Впечатления',
     'Книги',
-    'Игрушки',
+    'Гаджеты',
     'Для дома',
+    'Одежда',
     'Спорт',
-    'Другое',
   ];
 
   @override
@@ -39,8 +41,7 @@ class _GiftFormScreenState extends State<GiftFormScreen> {
     final g = widget.initial;
     _title = TextEditingController(text: g?.title ?? '');
     _recipient = TextEditingController(text: g?.recipient ?? '');
-    _price = TextEditingController(
-        text: g?.plannedPrice == null ? '' : g!.plannedPrice!.toString());
+    _price = TextEditingController(text: g?.plannedPrice == null ? '' : g!.plannedPrice!.toString());
     _image = TextEditingController(text: g?.imageUrl ?? '');
     _category = g?.category ?? 'Без категории';
     _priority = g?.priority ?? 3;
@@ -60,9 +61,8 @@ class _GiftFormScreenState extends State<GiftFormScreen> {
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
 
-    final price = _price.text.trim().isEmpty
-        ? null
-        : double.tryParse(_price.text.replaceAll(',', '.'));
+    final price =
+        _price.text.trim().isEmpty ? null : double.tryParse(_price.text.replaceAll(',', '.'));
     if (_price.text.trim().isNotEmpty && price == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Цена должна быть числом')),
@@ -104,7 +104,7 @@ class _GiftFormScreenState extends State<GiftFormScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.pop(),
         ),
-        title: Text(isEdit ? 'Редактировать идею' : 'Новая идея'),
+        title: Text(isEdit ? 'Редактировать подарок' : 'Новый подарок'),
       ),
       body: Form(
         key: _formKey,
@@ -115,20 +115,20 @@ class _GiftFormScreenState extends State<GiftFormScreen> {
               controller: _title,
               decoration: const InputDecoration(
                 labelText: 'Название подарка *',
-                hintText: 'Напр. наушники, книга, сертификат...',
+                prefixIcon: Icon(Icons.card_giftcard_outlined),
+                hintText: 'Напр. цветы, книга, сюрприз...',
               ),
-              validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? 'Обязательное поле' : null,
+              validator: (v) => (v == null || v.trim().isEmpty) ? 'Обязательное поле' : null,
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: _recipient,
               decoration: const InputDecoration(
                 labelText: 'Получатель *',
-                hintText: 'Кому предназначен подарок',
+                prefixIcon: Icon(Icons.person_outline),
+                hintText: 'Кому предназначается подарок',
               ),
-              validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? 'Обязательное поле' : null,
+              validator: (v) => (v == null || v.trim().isEmpty) ? 'Обязательное поле' : null,
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
@@ -145,6 +145,7 @@ class _GiftFormScreenState extends State<GiftFormScreen> {
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
                 labelText: 'Цена / бюджет (₽)',
+                prefixIcon: Icon(Icons.attach_money),
                 hintText: 'например 2500',
               ),
             ),
@@ -153,6 +154,7 @@ class _GiftFormScreenState extends State<GiftFormScreen> {
               controller: _image,
               decoration: const InputDecoration(
                 labelText: 'Изображение (URL)',
+                prefixIcon: Icon(Icons.image_outlined),
                 hintText: 'https://example.com/present.jpg',
               ),
             ),
@@ -176,8 +178,9 @@ class _GiftFormScreenState extends State<GiftFormScreen> {
               controller: _note,
               maxLines: 4,
               decoration: const InputDecoration(
-                labelText: 'Заметка',
-                hintText: 'Размер, цвет, ссылка, идеи и т.п.',
+                labelText: 'Комментарий',
+                prefixIcon: Icon(Icons.notes_outlined),
+                hintText: 'Идеи, размеры, ссылки и т.д.',
               ),
             ),
             const SizedBox(height: 20),

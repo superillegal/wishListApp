@@ -1,5 +1,5 @@
 String formatMoney(double? value, {String currency = '₽'}) {
-  if (value == null) return '—';
+  if (value == null) return '-';
   final s = value % 1 == 0 ? value.toStringAsFixed(0) : value.toStringAsFixed(2);
   return '$s $currency';
 }

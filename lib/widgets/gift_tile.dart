@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../models/gift.dart';
 import '../utils/format.dart';
 import 'gift_image.dart';
@@ -24,10 +25,9 @@ class GiftTile extends StatelessWidget {
     final theme = Theme.of(context);
     final subtitle = <String>[
       gift.recipient,
-      if (gift.category != null && gift.category!.trim().isNotEmpty)
-        gift.category!,
+      if (gift.category != null && gift.category!.trim().isNotEmpty) gift.category!,
       if (gift.plannedPrice != null) formatMoney(gift.plannedPrice),
-    ].join(' • ');
+    ].join(' · ');
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -54,9 +54,12 @@ class GiftTile extends StatelessWidget {
             ),
           ],
         ),
-        title: Text(gift.title,
-            maxLines: 1, overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.titleMedium),
+        title: Text(
+          gift.title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.titleMedium,
+        ),
         subtitle: Text(
           subtitle,
           maxLines: 1,
@@ -81,13 +84,13 @@ class GiftTile extends StatelessWidget {
                     break;
                 }
               },
-              itemBuilder: (context) => [
+              itemBuilder: (context) => const [
                 PopupMenuItem(
                   value: 'toggle',
-                  child: Text(gift.isPurchased ? 'Вернуть в планы' : 'Отметить купленным'),
+                  child: Text('Переключить статус'),
                 ),
-                const PopupMenuDivider(),
-                const PopupMenuItem(
+                PopupMenuDivider(),
+                PopupMenuItem(
                   value: 'delete',
                   child: Text('Удалить'),
                 ),

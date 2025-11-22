@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
-import '../app_state.dart';
+import '../features/gifts/bloc/gifts_bloc.dart';
+import '../features/gifts/bloc/gifts_event.dart';
+import '../features/gifts/bloc/gifts_state.dart';
 import '../models/gift.dart';
 import '../navigation/app_routes.dart';
 import '../utils/format.dart';
@@ -9,16 +12,15 @@ import '../widgets/budget_bar.dart';
 import '../widgets/gift_image.dart';
 import '../widgets/statistics_card.dart';
 
+
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   Future<void> _openAddForm(BuildContext context) async {
     final created = await context.push<Gift>(AppRoutePaths.giftForm);
     if (!context.mounted) return;
-    final appState = AppStateInheritedWidget.read(context);
-    if (created != null && appState != null) {
-      await appState.onAddGift(created);
-      if (!context.mounted) return;
+    if (created != null) {
+      context.read<GiftsBloc>().add(AddGift(created));
       _showSnack(context, 'Добавлено: ${created.title}');
     }
   }
@@ -27,27 +29,14 @@ class HomeScreen extends StatelessWidget {
     await context.push(AppRoutePaths.giftDetails(gift.id));
   }
 
-  void _openAllScreen(BuildContext context) {
-    context.push(AppRoutePaths.allGifts);
-  }
+  void _openAllScreen(BuildContext context) => context.push(AppRoutePaths.allGifts);
+  void _openPurchasedScreen(BuildContext context) =>
+      context.push(AppRoutePaths.purchasedGifts);
+  void _openPlannedScreen(BuildContext context) => context.push(AppRoutePaths.plannedGifts);
+  void _openProfile(BuildContext context) => context.push(AppRoutePaths.profile);
 
-  void _openPurchasedScreen(BuildContext context) {
-    context.push(AppRoutePaths.purchasedGifts);
-  }
-
-  void _openPlannedScreen(BuildContext context) {
-    context.push(AppRoutePaths.plannedGifts);
-  }
-
-  void _openProfile(BuildContext context) {
-    context.push(AppRoutePaths.profile);
-  }
-
-  Future<void> _changeBudgetLimit(
-    BuildContext context,
-    AppStateInheritedWidget appState,
-  ) async {
-    final ctrl = TextEditingController(text: appState.budgetLimit.toStringAsFixed(0));
+  Future<void> _changeBudgetLimit(BuildContext context, GiftsLoaded state) async {
+    final ctrl = TextEditingController(text: state.budgetLimit.toStringAsFixed(0));
     final newLimit = await showDialog<double>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -55,9 +44,7 @@ class HomeScreen extends StatelessWidget {
         content: TextField(
           controller: ctrl,
           keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            labelText: 'Сумма в ₽',
-          ),
+          decoration: const InputDecoration(labelText: 'Лимит в ₽'),
         ),
         actions: [
           TextButton(onPressed: () => ctx.pop(), child: const Text('Отмена')),
@@ -66,12 +53,15 @@ class HomeScreen extends StatelessWidget {
               final value = double.tryParse(ctrl.text.replaceAll(',', '.'));
               ctx.pop(value);
             },
-            child: const Text('Обновить'),
+            child: const Text('Применить'),
           ),
         ],
       ),
     );
-    if (newLimit != null) appState.onChangeBudgetLimit(newLimit);
+    if (!context.mounted) return;
+    if (newLimit != null) {
+      context.read<GiftsBloc>().add(ChangeBudgetLimit(newLimit));
+    }
   }
 
   void _showSnack(BuildContext context, String msg) {
@@ -80,114 +70,87 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final appState = AppStateInheritedWidget.of(context);
-
-    if (appState == null) {
-      return const Scaffold(
-        body: Center(child: Text('Ошибка: AppState не найден')),
-      );
-    }
-
-    final body = (appState.isGeneratingInitial && appState.gifts.isEmpty)
-        ? const Center(child: CircularProgressIndicator())
-        : _HomeTab(
-            gifts: appState.gifts,
-            purchasedCount: appState.purchasedCount,
-            plannedCount: appState.plannedCount,
-            spent: appState.spent,
-            planned: appState.planned,
-            budgetLimit: appState.budgetLimit,
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Wishlist Gifts')
+      ),
+      body: BlocBuilder<GiftsBloc, GiftsState>(
+        builder: (context, state) {
+          if (state is GiftsLoading || state is GiftsInitial) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (state is GiftsError) {
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(state.message),
+                  const SizedBox(height: 12),
+                  FilledButton(
+                    onPressed: () => context.read<GiftsBloc>().add(const LoadGifts()),
+                    child: const Text('Повторить'),
+                  ),
+                ],
+              ),
+            );
+          }
+          if (state is! GiftsLoaded) {
+            return const SizedBox.shrink();
+          }
+          final loaded = state;
+          return _HomeTab(
+            state: loaded,
             onOpenAll: () => _openAllScreen(context),
             onOpenPurchased: () => _openPurchasedScreen(context),
             onOpenPlanned: () => _openPlannedScreen(context),
             onOpenProfile: () => _openProfile(context),
             onOpenDetails: (g) => _openDetails(context, g),
+            onChangeBudget: () => _changeBudgetLimit(context, loaded),
           );
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Wishlist Gifts'),
-        actions: [
-          IconButton(
-            tooltip: 'All gifts',
-            icon: const Icon(Icons.list_alt),
-            onPressed: () => _openAllScreen(context),
-          ),
-          IconButton(
-            tooltip: 'Purchased',
-            icon: const Icon(Icons.check_circle_outline),
-            onPressed: () => _openPurchasedScreen(context),
-          ),
-          IconButton(
-            tooltip: 'Planned',
-            icon: const Icon(Icons.pending_actions),
-            onPressed: () => _openPlannedScreen(context),
-          ),
-          IconButton(
-            tooltip: 'Profile',
-            icon: const Icon(Icons.person_outline),
-            onPressed: () => _openProfile(context),
-          ),
-          IconButton(
-            tooltip: 'Budget limit',
-            icon: const Icon(Icons.account_balance_wallet_outlined),
-            onPressed: () => _changeBudgetLimit(context, appState),
-          ),
-        ],
+        },
       ),
-      body: body,
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _openAddForm(context),
         icon: const Icon(Icons.add),
-        label: const Text('Добавить'),
+        label: const Text('Подарок'),
       ),
     );
   }
 }
 
 class _HomeTab extends StatelessWidget {
-  final List<Gift> gifts;
-  final int purchasedCount;
-  final int plannedCount;
-  final double spent;
-  final double planned;
-  final double budgetLimit;
+  final GiftsLoaded state;
   final VoidCallback onOpenAll;
   final VoidCallback onOpenPurchased;
   final VoidCallback onOpenPlanned;
   final VoidCallback onOpenProfile;
+  final VoidCallback onChangeBudget;
   final void Function(Gift) onOpenDetails;
 
   const _HomeTab({
-    required this.gifts,
-    required this.purchasedCount,
-    required this.plannedCount,
-    required this.spent,
-    required this.planned,
-    required this.budgetLimit,
+    required this.state,
     required this.onOpenAll,
     required this.onOpenPurchased,
     required this.onOpenPlanned,
     required this.onOpenProfile,
+    required this.onChangeBudget,
     required this.onOpenDetails,
   });
 
   @override
   Widget build(BuildContext context) {
-    final lastAdded = [...gifts]..sort((a, b) => b.dateAdded.compareTo(a.dateAdded));
-    final recent = lastAdded.take(5).toList();
-
+    final recent = state.recentGifts;
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        BudgetBar(limit: budgetLimit, spent: spent),
+        BudgetBar(limit: state.budgetLimit, spent: state.spent),
         const SizedBox(height: 12),
         Row(
           children: [
             Expanded(
               child: StatisticsCard(
-                title: 'Всего идей',
-                value: '${gifts.length}',
+                title: 'Идей всего',
+                value: '${state.totalGifts}',
                 icon: Icons.lightbulb_outline,
                 onTap: onOpenAll,
               ),
@@ -196,7 +159,7 @@ class _HomeTab extends StatelessWidget {
             Expanded(
               child: StatisticsCard(
                 title: 'Куплено',
-                value: '$purchasedCount',
+                value: '${state.purchasedCount}',
                 icon: Icons.check_circle_outline,
                 onTap: onOpenPurchased,
               ),
@@ -209,7 +172,7 @@ class _HomeTab extends StatelessWidget {
             Expanded(
               child: StatisticsCard(
                 title: 'В планах',
-                value: '$plannedCount',
+                value: '${state.plannedCount}',
                 icon: Icons.pending_actions,
                 onTap: onOpenPlanned,
               ),
@@ -217,10 +180,10 @@ class _HomeTab extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: StatisticsCard(
-                title: 'Запланировано',
-                value: formatMoney(planned),
+                title: 'Планируемо',
+                value: formatMoney(state.planned),
                 icon: Icons.savings_outlined,
-                onTap: onOpenAll,
+                onTap: onChangeBudget,
               ),
             ),
           ],
@@ -239,13 +202,13 @@ class _HomeTab extends StatelessWidget {
               onTap: () => onOpenDetails(g),
               leading: GiftThumbnail(imageUrl: g.imageUrl, size: 52),
               title: Text(g.title, maxLines: 1, overflow: TextOverflow.ellipsis),
-              subtitle: Text('${g.recipient} • ${g.category ?? 'Без категории'}'),
+              subtitle: Text('${g.recipient} · ${g.category ?? 'Без категории'}'),
               trailing: Text(formatMoney(g.plannedPrice)),
             )),
         if (recent.isEmpty)
           const Padding(
             padding: EdgeInsets.only(top: 12),
-            child: Text('Пока нет идей. Добавьте подарок.'),
+            child: Text('Пока ничего нет. Добавьте подарок.'),
           ),
       ],
     );

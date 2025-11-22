@@ -3,16 +3,16 @@ import 'package:flutter/foundation.dart';
 @immutable
 class Gift {
   final String id;
-  final String title;          // идея подарка
-  final String recipient;      // получатель
-  final double? plannedPrice;  // бюджет/стоимость (опц.)
-  final bool isPurchased;      // куплено/в планах
-  final int priority;          // 1..5
+  final String title; // имя подарка
+  final String recipient; // получатель
+  final double? plannedPrice; // план/факт (руб.)
+  final bool isPurchased; // куплен/в планах
+  final int priority; // 1..5
   final DateTime dateAdded;
   final DateTime? datePurchased;
-  final String? category;      // опц.
-  final String? note;          // опц.
-  final String? imageUrl;      // опц. ссылка на изображение
+  final String? category; // кат.
+  final String? note; // прим.
+  final String? imageUrl; // картинка
 
   const Gift({
     required this.id,
@@ -53,6 +53,40 @@ class Gift {
       category: category ?? this.category,
       note: note ?? this.note,
       imageUrl: imageUrl ?? this.imageUrl,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'recipient': recipient,
+      'plannedPrice': plannedPrice,
+      'isPurchased': isPurchased,
+      'priority': priority,
+      'dateAdded': dateAdded.toIso8601String(),
+      'datePurchased': datePurchased?.toIso8601String(),
+      'category': category,
+      'note': note,
+      'imageUrl': imageUrl,
+    };
+  }
+
+  static Gift fromJson(Map<String, dynamic> json) {
+    return Gift(
+      id: json['id'] as String,
+      title: json['title'] as String,
+      recipient: json['recipient'] as String,
+      plannedPrice: (json['plannedPrice'] as num?)?.toDouble(),
+      isPurchased: json['isPurchased'] as bool? ?? false,
+      priority: json['priority'] as int? ?? 3,
+      dateAdded: DateTime.parse(json['dateAdded'] as String),
+      datePurchased: json['datePurchased'] == null
+          ? null
+          : DateTime.parse(json['datePurchased'] as String),
+      category: json['category'] as String?,
+      note: json['note'] as String?,
+      imageUrl: json['imageUrl'] as String?,
     );
   }
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../utils/format.dart';
 
 class BudgetBar extends StatelessWidget {
@@ -23,9 +24,10 @@ class BudgetBar extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Бюджет',
-                style: theme.textTheme.titleMedium
-                    ?.copyWith(fontWeight: FontWeight.w600)),
+            Text(
+              'Бюджет',
+              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+            ),
             const SizedBox(height: 12),
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
@@ -39,17 +41,18 @@ class BudgetBar extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text('Потрачено: ${formatMoney(spent)}'),
-                Text('Лимит: ${formatMoney(limit)}',
-                    style: TextStyle(
-                        color: over
-                            ? theme.colorScheme.error
-                            : theme.textTheme.bodyMedium?.color)),
+                Text(
+                  'Лимит: ${formatMoney(limit)}',
+                  style: TextStyle(
+                    color: over ? theme.colorScheme.error : theme.textTheme.bodyMedium?.color,
+                  ),
+                ),
               ],
             ),
             if (over) ...[
               const SizedBox(height: 8),
               Text(
-                'Внимание: перерасход на ${formatMoney(spent - limit)}',
+                'Перерасход: превышено на ${formatMoney(spent - limit)}',
                 style: TextStyle(color: theme.colorScheme.error),
               ),
             ]
